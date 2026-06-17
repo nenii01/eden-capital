@@ -1,0 +1,32 @@
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    html.H1("Eden Shared Apartment Electricity Dashboard"),
+    
+    dcc.Dropdown(
+        id='month-selector',
+        options=[{'label': m, 'value': m} for m in ['January', 'February', 'March', 'April', 'May', 'June', 
+                                                  'July', 'August', 'September', 'October', 'November', 'December']],
+        value='January',
+        style={'width': '50%'}
+    ),
+    
+    dcc.Dropdown(
+        id='year-selector',
+        options=[{'label': y, 'value': y} for y in range(2020, 2025)],
+        value=2023,
+        style={'width': '50%'}
+    ),
+    
+    dcc.Graph(id='room-usage'),
+    dcc.Graph(id='common-area-usage'),
+    dcc.Graph(id='trend-comparison'),
+    
+    html.Div(id='total-cost'),
+    
+    dcc.Interval(
+        id='interval-component',
+        interval=60*60*1000,  # 1 hour refresh
+        n_intervals=0
+    )
+])
