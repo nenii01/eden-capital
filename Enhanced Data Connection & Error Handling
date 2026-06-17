@@ -1,0 +1,16 @@
+===Current Implementation=====
+sheet = client.open("Eden_Apartment_Electricity").sheet1
+data = sheet.get_all_records()
+
+===Multiple Sheet Support: If data is split across sheets (e.g., one per month/year)====
+
+sheet = client.open("Eden_Apartment_Electricity").worksheet(f"{selected_month}_{selected_year}")
+
+====Error Handling===
+
+try:
+    sheet = client.open("Eden_Apartment_Electricity").sheet1
+    data = sheet.get_all_records()
+except gspread.exceptions.APIError as e:
+    return html.Div(f"Error fetching data: {str(e)}"), None, None, None
+
