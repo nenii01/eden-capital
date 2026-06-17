@@ -1,0 +1,91 @@
+==== Add a dropdown to filter by roommate ===
+
+===Callback Logic===
+
+dcc.Dropdown(
+    id='roommate-selector',
+    options=[{'label': 'All', 'value': 'All'}] + 
+            [{'label': r, 'value': r} for r in df['Roommate'].unique()],
+    value='All')
+
+===Cost Allocation Logic===
+
+Common areas split equally, rooms assigned to individuals.
+
+def calculate_costs(df):
+    common_kwh = df[df['Area_Type'] == 'Common']['kWh'].sum()
+    num_roommates = df['Roommate'].nunique()
+    common_cost_per_person = (common_kwh * rate) / num_roommates
+    
+    individual_costs = {}
+    for roommate in df['Roommate'].unique():
+        room_kwh = df[(df['Roommate'] == roommate) & (df['Area_Type'] == 'Room')]['kWh'].sum()
+        individual_costs[roommate] = (room_kwh * rate) + common_cost_per_person
+    
+    return individual_costs
+
+=== Display as a Table ===
+
+html.Table([
+    html.Tr([html.Th("Roommate"), html.Th("Cost ($)")]),
+    *[html.Tr([html.Td(name), html.Td(f"{cost:.2f}")]) 
+      for name, cost in calculate_costs(df_filtered).items()]])
+
+=== Real-Time Meter Integration Use Python libraries like requests to fetch real-time data ===
+
+import requests
+def get_smart_meter_data():
+    response = requests.get("https://meter-api.example.com/eden-apartment")
+    return response.json()  # Returns { "room1": 450.2, "kitchen": 120.5, ... }
+
+--- Alerts & Notifications ===
+
+Threshold Alerts
+
+def check_alerts(df):
+    alerts = []
+    avg_usage = df['kWh'].mean()
+    for room, usage in df.groupby('Room')['kWh'].sum().items():
+        if usage > 1.5 * avg_usage:
+            alerts.append(f"High usage in {room} ({(usage/avg_usage):.0%} of average)")
+    return alerts
+
+=== Display in Dashboard ===
+
+html.Div(id='alerts', children=[
+    html.H3("Alerts"),
+    html.Ul([html.Li(alert) for alert in check_alerts(df_filtered)])])
+
+=== Energy Efficiency Tips Dynamic Recommendations: ===
+
+def get_tips(df):
+    tips = []
+    if df['kWh'].sum() > df_previous_month['kWh'].sum():
+        tips.append("Usage is higher than last month. Check for unused appliances.")
+    if df[df['Area'] == 'Kitchen']['kWh'].sum() > 200:
+        tips.append("Kitchen usage is high. Consider using energy-efficient cooking modes.")
+    return tips
+
+=== Deployment with Authentication
+Option 1: Dash Enterprise
+
+Built-in Auth via dash-auth package.
+Option 2: Custom Flask-Login ===
+
+from flask_login import LoginManager, UserMixin
+
+app.server.config['SECRET_KEY'] = 'secret'
+login_manager = LoginManager(app.server)
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+@login_manager.user_loader
+def load_user(username):
+    return User(username)
+
+app.layout = html.Div([
+    dcc.Location(id='url'),
+    html.Div(id='page-content')])
+
