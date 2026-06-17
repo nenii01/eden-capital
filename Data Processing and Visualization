@@ -1,0 +1,53 @@
+@app.callback(
+    [Output('room-usage', 'figure'),
+     Output('common-area-usage', 'figure'),
+     Output('trend-comparison', 'figure'),
+     Output('total-cost', 'children')],
+    [Input('month-selector', 'value'),
+     Input('year-selector', 'value'),
+     Input('interval-component', 'n_intervals')]
+)
+def update_dashboard(selected_month, selected_year, n):
+    # Access Google Sheet
+    sheet = client.open("Eden_Apartment_Electricity").sheet1
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+    
+    # Filter for selected month/year
+    df_filtered = df[(df['Month'] == selected_month) & (df['Year'] == selected_year)]
+    
+    # Room usage pie chart
+    room_fig = px.pie(df_filtered, 
+                     values='kWh', 
+                     names='Room', 
+                     title=f'Electricity Usage by Room - {selected_month} {selected_year}',
+                     hole=0.3)
+    
+    # Common area usage bar chart
+    common_fig = px.bar(df_filtered[df_filtered['Area_Type'] == 'Common'], 
+                       x='Area', 
+                       y='kWh', 
+                       title=f'Common Area Usage - {selected_month} {selected_year}',
+                       color='Area')
+    
+    # Trend comparison line chart (last 6 months)
+    trend_df = df[(df['Year'] == selected_year) & 
+                 (df['Month'].isin(get_previous_months(selected_month, 5)))]
+    trend_fig = px.line(trend_df, 
+                       x='Month', 
+                       y='kWh', 
+                       color='Room', 
+                       title='Usage Trend Comparison')
+    
+    # Calculate total cost
+    rate = 0.15  # $ per kWh (adjust as needed)
+    total_kwh = df_filtered['kWh'].sum()
+    total_cost = total_kwh * rate
+    
+    return room_fig, common_fig, trend_fig, f'Total Estimated Cost: ${total_cost:.2f}'
+
+def get_previous_months(current_month, n):
+    months = ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December']
+    current_index = months.index(current_month)
+    return [months[(current_index - i) % 12] for i in range(n, -1, -1)]
